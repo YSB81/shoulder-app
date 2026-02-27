@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Shoulder — When Should You Go?</title>
+<meta name="description" content="Find the best time to visit US destinations based on what matters to you — price, weather, crowds, or access."/>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌤️</text></svg>"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,500;0,9..40,700;0,9..40,800;1,9..40,400&family=DM+Serif+Display&display=swap" rel="stylesheet"/>
+<script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
+body{font-family:'DM Sans',sans-serif;background:#faf9f6;color:#1a1a1a;line-height:1.5}
+::selection{background:#2d5016;color:#f0fdf4}
+input[type=range]{-webkit-appearance:none;appearance:none;height:5px;border-radius:3px;background:#e5e7eb;outline:none;cursor:pointer}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:18px;height:18px;border-radius:50%;cursor:pointer;border:2px solid white;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+button{font-family:inherit}
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+.fade-up{animation:fadeUp .4s ease-out both}
+.fade-d1{animation-delay:.05s}.fade-d2{animation-delay:.1s}.fade-d3{animation-delay:.15s}.fade-d4{animation-delay:.2s}
+.fade-d5{animation-delay:.25s}.fade-d6{animation-delay:.3s}.fade-d7{animation-delay:.35s}.fade-d8{animation-delay:.4s}
+.fade-d9{animation-delay:.45s}.fade-d10{animation-delay:.5s}
+@keyframes slideIn{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:translateX(0)}}
+.slide-in{animation:slideIn .3s ease-out both}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useMemo, useEffect, useCallback } = React;
+
+const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const MONTH_FULL = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+
+const destinations = {
+  maui: {
+    name:"Maui",region:"Hawaii",cat:"beach",emoji:"🌺",
+    tagline:"World-class weather at 40% off peak pricing",
+    peak:"Dec–Mar, Jun–Aug",shoulder:"Apr–May, Sep–Nov",airport:"OGG",
+    scores:{price:[1,1,2,3,4,3,1,2,4,4,4,1],weather:[3,3,3,4,4,5,5,5,5,4,4,3],crowds:[1,2,2,4,5,3,1,1,4,4,4,2],access:[5,5,5,5,5,5,5,5,5,5,5,5]},
+    best:"Late Apr–May or Sep–Oct",
+    why:"Weather barely changes year-round. Prices and crowds swing wildly. May and Sep–Oct give you essentially the same experience at 30-40% less. Hotel occupancy drops to low 60s% vs 80%+ in winter.",
+    tradeoff:"May: slightly more rain windward side. Sep: technically hurricane season (direct hits extremely rare).",
+    tip:"April and May have the lowest hotel occupancy statewide. October sees occupancy around 65% vs peak months at 78%+."
+  },
+  sandiego: {
+    name:"San Diego",region:"California",cat:"beach",emoji:"🏖️",
+    tagline:"America's best year-round weather with genuine shoulder savings",
+    peak:"Jun–Sep",shoulder:"Mar–May, Oct–Nov",airport:"SAN",
+    scores:{price:[3,3,3,3,3,1,1,1,2,3,4,3],weather:[3,3,3,4,4,5,5,5,5,5,4,3],crowds:[4,4,4,3,3,1,1,1,2,3,4,4],access:[5,5,5,5,5,5,5,5,5,5,5,5]},
+    best:"October–November or March–April",
+    why:"No real off-season for weather — pleasant year-round. October still has summer temperatures (75°F+) with dramatically fewer tourists. March–April is warm and dry before summer crowds.",
+    tradeoff:"May–June: 'May Gray' and 'June Gloom' bring marine fog. Winter: mild but cooler, occasional rain.",
+    tip:"October is arguably the best month — warmest water temps (68–70°F), no fog, fewer crowds than summer."
+  },
+  outerbanks: {
+    name:"Outer Banks",region:"North Carolina",cat:"beach",emoji:"🐚",
+    tagline:"Empty beaches and half-price rentals in shoulder months",
+    peak:"Jun–Aug",shoulder:"May, Sep–Oct",airport:"ORF",
+    scores:{price:[5,5,5,4,3,1,1,1,3,4,5,5],weather:[1,1,2,3,4,5,5,5,4,3,2,1],crowds:[5,5,5,4,3,1,1,1,3,4,5,5],access:[2,2,3,4,5,5,5,5,5,4,3,2]},
+    best:"Late May or September",
+    why:"Rental prices drop 40-60% outside summer. September water temps are actually the warmest of the year (78°F+). Late May has everything open without the crush.",
+    tradeoff:"Sep: hurricane season risk. Oct: water cooling, some restaurants closing. May: water still chilly for swimming.",
+    tip:"September has the warmest ocean water of the year — warmer than July. Most people don't know this."
+  },
+  floridakeys: {
+    name:"Florida Keys",region:"Florida",cat:"beach",emoji:"🌴",
+    tagline:"Tropical escape where off-season means fewer crowds, not worse weather",
+    peak:"Dec–Apr",shoulder:"May, Nov",airport:"EYW",
+    scores:{price:[1,1,1,1,3,4,4,4,4,3,3,1],weather:[5,5,5,5,4,3,3,3,3,3,4,5],crowds:[1,1,1,1,3,4,5,5,4,3,3,1],access:[5,5,5,5,5,5,5,5,4,4,5,5]},
+    best:"May or November",
+    why:"Inverted pattern — winter is peak (snowbirds + perfect weather). May catches the tail of dry season. November is post-hurricane, pre-snowbird — a genuine sweet spot.",
+    tradeoff:"Jun–Oct: hurricane season, higher humidity, afternoon thunderstorms. But hotels are 40-50% cheaper.",
+    tip:"November is the hidden gem — hurricane season ends, humidity drops, winter crowds haven't arrived, rates are low."
+  },
+  puertorico: {
+    name:"Puerto Rico",region:"Caribbean US",cat:"beach",emoji:"🇵🇷",
+    tagline:"No passport needed, with dramatic shoulder season savings",
+    peak:"Dec–Apr",shoulder:"May–Jun, Nov",airport:"SJU",
+    scores:{price:[1,1,1,2,3,4,4,4,4,3,3,1],weather:[4,4,4,4,3,3,3,3,2,2,3,4],crowds:[1,1,2,2,3,4,4,4,4,4,3,1],access:[5,5,5,5,5,5,5,5,5,5,5,5]},
+    best:"May–June or November",
+    why:"Hotel rates drop 30-40% from winter peak. May and June have lower humidity than deep summer. November is post-hurricane with great rates.",
+    tradeoff:"Aug–Oct: peak hurricane season. Summer: more humidity and afternoon rain (mornings usually clear).",
+    tip:"Everything stays open year-round — no access penalty. The savings are purely about crowds and price."
+  },
+  yellowstone: {
+    name:"Yellowstone",region:"Wyoming",cat:"parks",emoji:"🦬",
+    tagline:"Half the crowds, twice the wildlife in shoulder months",
+    peak:"Jun–Aug",shoulder:"May, Sep–early Oct",airport:"BZN",
+    scores:{price:[5,5,5,4,3,1,1,1,2,3,5,5],weather:[1,1,1,2,3,4,5,5,4,2,1,1],crowds:[5,5,5,5,3,1,1,1,2,3,5,5],access:[1,1,1,2,4,5,5,5,5,4,2,1]},
+    best:"Late May or mid-Sep – early Oct",
+    why:"4.74M visitors in 2024. July saw 992K alone. Late May (522K) has everything open and wildlife active. Late September brings elk rut and fall colors.",
+    tradeoff:"May: snow possible, some roads closed. Late Sep/Oct: shorter days, facilities closing fast after Labor Day.",
+    tip:"The 'September is empty' myth is busted — 852K visitors in Sep 2024. Late September after the 20th is the real window."
+  },
+  zion: {
+    name:"Zion",region:"Utah",cat:"parks",emoji:"🏜️",
+    tagline:"Red rock splendor without the shuttle bus gridlock",
+    peak:"Mar–May, Sep–Oct",shoulder:"Nov, Feb–early Mar",airport:"SGU",
+    scores:{price:[4,3,2,1,1,2,2,2,1,1,3,4],weather:[2,3,3,4,4,3,2,2,4,4,3,2],crowds:[4,3,2,1,1,2,2,2,1,1,3,4],access:[4,4,5,5,5,5,5,5,5,5,5,4]},
+    best:"November or late February",
+    why:"Zion's shoulder is counterintuitive — it's winter, not spring/fall. November has mild temps (50-65°F), virtually no crowds, shuttle not required. February brings occasional snow on red rock — stunning.",
+    tradeoff:"Nov–Feb: shorter days, ice possible on higher trails. Summer: brutally hot (100°F+).",
+    tip:"Angels Landing permit system makes spring/fall feel even more crowded. Winter avoids the permit lottery entirely."
+  },
+  grandcanyon: {
+    name:"Grand Canyon",region:"Arizona",cat:"parks",emoji:"🏞️",
+    tagline:"America's greatest vista with room to breathe",
+    peak:"Mar–May, Sep–Oct",shoulder:"Nov–Feb, Jun",airport:"FLG",
+    scores:{price:[4,3,2,1,1,2,3,3,1,1,3,4],weather:[2,2,3,4,4,3,2,2,4,4,3,2],crowds:[4,4,3,1,1,2,2,2,1,1,3,4],access:[4,4,5,5,5,5,5,5,5,5,5,4]},
+    best:"November or late Feb–early March",
+    why:"South Rim is open year-round. November has mild daytime temps (50s°F), thin crowds, and occasional snow makes the canyon otherworldly. Hotels 40-50% cheaper than spring.",
+    tradeoff:"Winter: North Rim closed Oct–May. South Rim trail can be icy. Inner canyon is mild but requires planning.",
+    tip:"South Rim with snow is one of the most dramatic landscapes in America. Bring layers — warm afternoons, cold mornings."
+  },
+  glacier: {
+    name:"Glacier",region:"Montana",cat:"parks",emoji:"🏔️",
+    tagline:"Going-to-the-Sun Road without the reservation system",
+    peak:"Jul–Aug",shoulder:"Jun, Sep",airport:"FCA",
+    scores:{price:[5,5,5,5,3,2,1,1,2,4,5,5],weather:[1,1,1,2,3,4,5,5,4,2,1,1],crowds:[5,5,5,5,3,1,1,1,3,4,5,5],access:[1,1,1,1,2,4,5,5,4,3,1,1]},
+    best:"Early–mid June or September after Labor Day",
+    why:"3M+ visitors in 2024. Vehicle reservation system ends Labor Day. Late September thins out. Early June has wildflowers and snowmelt — dramatic scenery.",
+    tradeoff:"June: Going-to-the-Sun Road may not fully open until late June/early July. Sep: weather turns fast, some facilities close.",
+    tip:"Going-to-the-Sun Road opening date varies wildly (mid-June to early July). Check NPS before booking."
+  },
+  sanfrancisco: {
+    name:"San Francisco",region:"California",cat:"city",emoji:"🌉",
+    tagline:"The city where 'summer' is actually fall",
+    peak:"Jun–Aug",shoulder:"Apr–May, Sep–Nov",airport:"SFO",
+    scores:{price:[4,3,3,3,4,2,1,1,2,2,3,3],weather:[2,2,3,3,3,2,2,3,5,5,3,2],crowds:[4,5,4,4,3,1,1,1,3,3,4,3],access:[5,5,5,5,5,5,5,5,5,5,5,5]},
+    best:"Sep–Oct (the real summer) or May",
+    why:"SF's secret: summer is foggy and cold. Sep–Oct are the warmest months (70-75°F). May is cheapest — hotels ~$200/night, warm, low crowds.",
+    tradeoff:"Sep–Oct: convention season can spike prices unpredictably (Dreamforce, Fleet Week).",
+    tip:"Check the SF convention calendar before booking. One conference can double hotel rates for a week."
+  },
+  neworleans: {
+    name:"New Orleans",region:"Louisiana",cat:"city",emoji:"🎺",
+    tagline:"Jazz, food, and culture at half-price between the festivals",
+    peak:"Feb (Mardi Gras), Mar–May, Oct",shoulder:"Jun, Sep, Nov–Dec",airport:"MSY",
+    scores:{price:[3,1,2,2,2,4,4,4,4,2,3,2],weather:[3,3,3,4,4,2,1,1,2,4,4,3],crowds:[3,1,2,2,3,4,4,4,4,2,4,2],access:[5,5,5,5,5,5,5,5,5,5,5,5]},
+    best:"November or early December",
+    why:"Post-Halloween, pre-holiday NOLA is a sweet spot. Weather cools to 60s–70s, humidity drops, rates fall. Food and music are year-round.",
+    tradeoff:"Jun–Aug: brutally hot and humid. Sep: hurricane risk. Feb: Mardi Gras prices are astronomical.",
+    tip:"November and early December have the best weather-to-value ratio. Restaurant reservations are easy to get."
+  },
+  charleston: {
+    name:"Charleston",region:"South Carolina",cat:"city",emoji:"🏛️",
+    tagline:"Southern charm without the summer steam",
+    peak:"Mar–Jun, Oct",shoulder:"Nov–Feb, Jul–Aug",airport:"CHS",
+    scores:{price:[4,4,2,1,1,2,3,3,3,1,3,4],weather:[2,3,4,5,4,3,2,2,3,5,4,2],crowds:[4,4,2,1,1,2,3,3,3,1,3,4],access:[5,5,5,5,5,5,5,5,5,5,5,5]},
+    best:"November or January–February",
+    why:"Spring is peak Charleston (gardens, perfect weather). November offers 60–70°F, manageable humidity, thin crowds, lower rates. Jan–Feb is cheapest.",
+    tradeoff:"Summer (Jul–Aug): 95°F, oppressive humidity. Winter can be cool and damp.",
+    tip:"November avoids both the spring crowd surge and the summer heat. Restaurant scene doesn't skip a beat."
+  },
+  savannah: {
+    name:"Savannah",region:"Georgia",cat:"city",emoji:"🌳",
+    tagline:"Moss-draped squares without the tourist crush",
+    peak:"Mar–May, Oct",shoulder:"Nov–Feb, Jul–Sep",airport:"SAV",
+    scores:{price:[4,4,2,1,1,2,3,3,3,1,3,4],weather:[2,3,4,5,4,2,1,1,3,5,4,2],crowds:[4,4,2,1,1,3,3,3,3,1,3,4],access:[5,5,5,5,5,5,5,5,5,5,5,5]},
+    best:"November or late January–February",
+    why:"Similar to Charleston — spring and October are peak. November has lovely weather (mid 60s–70s), lighter crowds, lower rates.",
+    tradeoff:"Summer: extremely hot and humid. Winter: can be damp and cool. Some garden attractions less dramatic outside spring.",
+    tip:"The squares are beautiful year-round. November evening walks with warm temps and no crowds are magical."
+  },
+  austin: {
+    name:"Austin",region:"Texas",cat:"city",emoji:"🎸",
+    tagline:"Live music capital with huge price swings around events",
+    peak:"Mar (SXSW), Oct (ACL)",shoulder:"Jan–Feb, Jun–Aug",airport:"AUS",
+    scores:{price:[3,3,1,2,3,3,4,4,3,1,2,2],weather:[3,3,4,4,4,3,1,1,2,4,4,3],crowds:[3,3,1,3,3,3,3,3,3,1,2,2],access:[5,5,5,5,5,5,5,5,5,5,5,5]},
+    best:"January–February or late April–May",
+    why:"Austin pricing is event-driven. SXSW and ACL make those months packed and pricey. Jan–Feb has mild weather (50–65°F) and the live music scene never stops.",
+    tradeoff:"Jun–Aug: brutal heat (100°F+). Event weeks completely distort the market.",
+    tip:"Any non-event week is essentially shoulder season. Check the Austin events calendar before booking."
+  },
+  nyc: {
+    name:"New York City",region:"New York",cat:"city",emoji:"🗽",
+    tagline:"The city that never has a bad season — just expensive ones",
+    peak:"Jun–Aug, Dec",shoulder:"Jan–Feb, Sep–Nov",airport:"JFK",
+    scores:{price:[4,4,3,2,2,1,1,1,2,2,3,1],weather:[1,1,2,4,4,4,3,3,5,4,3,1],crowds:[4,4,3,2,2,1,1,1,2,2,3,1],access:[5,5,5,5,5,5,5,5,5,5,5,5]},
+    best:"September–October or January–February",
+    why:"Sep–Oct are genuinely perfect — warm days, cool nights, Central Park turning colors. Hotels cheaper than summer. Jan–Feb is budget season (50% off peak).",
+    tradeoff:"Jan–Feb: cold (20–40°F), occasional snowstorms. Dec: holiday premium despite cold.",
+    tip:"September is widely considered the best month by locals. City empties of summer tourists but everything is at full capacity."
+  },
+  parkcity: {
+    name:"Park City",region:"Utah",cat:"mountain",emoji:"⛷️",
+    tagline:"74% off luxury lodging in shoulder months",
+    peak:"Dec–Mar (ski), Jul–Aug",shoulder:"Apr–Jun, Sep–Nov",airport:"SLC",
+    scores:{price:[1,1,1,3,5,4,2,3,4,4,4,1],weather:[1,1,2,3,4,5,4,4,5,4,2,1],crowds:[1,1,1,4,5,3,2,2,4,5,4,2],access:[4,4,4,3,3,5,5,5,5,4,3,3]},
+    best:"May–early Jun or Sep–Oct",
+    why:"Most dramatic pricing in any US destination. Montage Deer Valley: $1,995/night ski season → $525 shoulder (74% discount). 4-star hotels at $100–120/night in May.",
+    tradeoff:"April is 'mud season.' Some restaurants reduce hours. May before Memorial Day can feel quiet.",
+    tip:"Fall shoulder beats spring — everything from summer still running, aspens turning gold, ski season hasn't started."
+  },
+  jacksonhole: {
+    name:"Jackson Hole",region:"Wyoming",cat:"mountain",emoji:"🫎",
+    tagline:"Grand Teton views at a fraction of ski-season prices",
+    peak:"Dec–Mar, Jul–Aug",shoulder:"May–Jun, Sep–Oct",airport:"JAC",
+    scores:{price:[1,1,1,3,4,2,1,1,3,4,4,1],weather:[1,1,1,2,3,4,5,5,4,3,1,1],crowds:[2,2,2,4,4,2,1,1,3,4,4,2],access:[3,3,3,3,4,5,5,5,5,4,3,3]},
+    best:"May–early June or late Sep–Oct",
+    why:"Jackson in October with fall colors and the Tetons is world-class. Elk migration, empty trails, hotel rates 50%+ off ski season.",
+    tradeoff:"May: Teton Park Road may not be fully open. Late Oct: cold, some closures. Summer is packed (Yellowstone overflow).",
+    tip:"September moose rut in Grand Teton is one of the best wildlife spectacles in the US."
+  },
+  sedona: {
+    name:"Sedona",region:"Arizona",cat:"mountain",emoji:"🔴",
+    tagline:"Red rocks without the resort-town premium",
+    peak:"Mar–May, Sep–Nov",shoulder:"Jun–Aug, Dec–Feb",airport:"FLG",
+    scores:{price:[3,3,1,1,1,4,4,4,1,1,1,3],weather:[3,3,4,5,4,3,2,2,4,5,4,3],crowds:[3,3,1,1,1,3,4,4,1,1,1,3],access:[5,5,5,5,5,5,5,5,5,5,5,5]},
+    best:"June–August or December–January",
+    why:"Sedona's shoulder is summer — counterintuitive because people assume Arizona = unbearable. At 4,500ft elevation, summer highs are 95°F (not 115°F like Phoenix). Hotels drop 30-40%.",
+    tradeoff:"Summer: hot but manageable, afternoon monsoon storms. Winter: cold mornings (30s°F), shorter days.",
+    tip:"Monsoon storms create spectacular cloud formations over red rocks. Photographers love summer Sedona."
+  },
+  asheville: {
+    name:"Asheville",region:"North Carolina",cat:"mountain",emoji:"🍺",
+    tagline:"Craft beer capital with Blue Ridge shoulder beauty",
+    peak:"Jun–Aug, Oct",shoulder:"Apr–May, Nov, Mar",airport:"AVL",
+    scores:{price:[4,4,3,2,2,1,1,1,2,1,3,4],weather:[1,2,3,4,5,4,4,4,4,4,3,1],crowds:[4,4,3,3,2,1,1,1,2,1,4,4],access:[5,5,5,5,5,5,5,5,5,5,5,5]},
+    best:"April–May or November",
+    why:"October foliage season is peak — packed, expensive, hard to get restaurant seats. May has gorgeous spring blooms, warm weather, pre-summer crowds. November has late color and thin crowds.",
+    tradeoff:"Winter: Blue Ridge Parkway sections close. April: variable weather, occasional cold snaps.",
+    tip:"Biltmore Estate is year-round. May gives you the spring gardens without the summer throngs."
+  },
+  moab: {
+    name:"Moab",region:"Utah",cat:"mountain",emoji:"🪨",
+    tagline:"Arches and Canyonlands without the RV gauntlet",
+    peak:"Mar–May, Sep–Oct",shoulder:"Nov–Feb, Jun",airport:"CNY",
+    scores:{price:[4,3,2,1,1,3,3,3,1,1,3,4],weather:[1,2,3,5,4,3,1,1,4,5,3,1],crowds:[5,4,2,1,1,3,3,3,1,1,4,5],access:[5,5,5,5,5,5,5,5,5,5,5,5]},
+    best:"November or late February–March",
+    why:"Spring and fall are peak Moab. November has mild temps (50-60°F), almost no crowds, Arches timed entry not required. Rates drop significantly.",
+    tradeoff:"Winter: cold mornings, short days, possible snow. Summer: dangerously hot (105°F+).",
+    tip:"Arches requires timed entry April–October. Visit November and skip the reservation system entirely."
+  },
+  mainecoast: {
+    name:"Maine Coast",region:"Maine",cat:"unique",emoji:"🦞",
+    tagline:"Lobster and lighthouses without the August gridlock",
+    peak:"Jul–Aug",shoulder:"Jun, Sep–mid Oct",airport:"PWM",
+    scores:{price:[5,5,5,4,3,3,1,1,3,3,5,5],weather:[1,1,1,2,3,4,5,5,4,3,2,1],crowds:[5,5,5,5,4,3,1,1,3,2,5,5],access:[1,1,1,2,3,4,5,5,5,4,2,1]},
+    best:"Early June or mid-Sep – early Oct",
+    why:"August is peak Maine — packed and $200+/night more. Early June has warm weather and lobster shacks open. Post-Labor Day is the true sweet spot: warm, everything open, no crowds.",
+    tradeoff:"June: water still frigid. Late Oct: businesses closing. May: chilly, black fly season.",
+    tip:"The two weeks between Labor Day and foliage tourism are considered by locals the absolute best time to visit."
+  },
+  alaska: {
+    name:"Alaska / Denali",region:"Alaska",cat:"unique",emoji:"🐻",
+    tagline:"The Last Frontier's brief shoulder windows are spectacular",
+    peak:"Jun–Aug",shoulder:"Mid-May, Sep",airport:"ANC",
+    scores:{price:[5,5,5,5,3,1,1,1,3,5,5,5],weather:[1,1,1,1,2,4,4,4,3,1,1,1],crowds:[5,5,5,5,4,1,1,1,3,5,5,5],access:[1,1,1,1,3,5,5,5,4,2,1,1]},
+    best:"Late May or early September",
+    why:"Season is brutally short. Late May has 18+ hours of daylight, spring wildlife, lower prices. Early September brings fall tundra colors and northern lights begin.",
+    tradeoff:"May: some roads/services not yet open. Sep: weather turns fast, daylight shrinking. Winter: most infrastructure closed.",
+    tip:"Early September in Denali has fall colors rivaling New England — golden tundra to snow-capped peaks. Plus northern lights."
+  },
+  pch: {
+    name:"Pacific Coast Hwy",region:"California",cat:"unique",emoji:"🛣️",
+    tagline:"America's greatest road trip without the summer RV parade",
+    peak:"Jun–Aug",shoulder:"Apr–May, Sep–Oct",airport:"SFO/LAX",
+    scores:{price:[4,4,3,3,3,1,1,1,2,2,4,4],weather:[3,3,3,3,3,3,2,3,4,4,3,2],crowds:[4,4,4,3,3,1,1,1,3,3,4,4],access:[5,5,5,5,5,5,5,5,5,5,5,5]},
+    best:"September–October or April–May",
+    why:"Summer is a slow RV parade. Sep–Oct has the best coastal California weather (fog gone, warm days), lighter traffic, Big Sur lodging available. Spring has wildflowers.",
+    tradeoff:"Winter: Highway 1 sections can close from mudslides. Spring: occasional rain.",
+    tip:"Big Sur in summer books 3-4 months out. In October, you can often book a week ahead."
+  },
+};
+
+const CATEGORIES = {
+  beach:{label:"Beach & Coastal",color:"#0369a1",icon:"🏖️"},
+  parks:{label:"National Parks",color:"#166534",icon:"🌲"},
+  city:{label:"Cities",color:"#6d28d9",icon:"🏙️"},
+  mountain:{label:"Mountain",color:"#c2410c",icon:"⛰️"},
+  unique:{label:"Unique",color:"#a21caf",icon:"✨"},
+};
+
+const PRESETS = {
+  balanced:{price:30,weather:25,crowds:25,access:20,label:"Balanced",desc:"Equal priority"},
+  budget:{price:50,weather:15,crowds:20,access:15,label:"Budget",desc:"Maximize savings"},
+  experience:{price:15,weather:30,crowds:30,access:25,label:"Experience",desc:"Best conditions"},
+  adventurer:{price:20,weather:35,crowds:15,access:30,label:"Explorer",desc:"Weather + access"},
+};
+
+const getComp = (sc,m,w) => {const t=w.price+w.weather+w.crowds+w.access;return sc.price[m]*(w.price/t)+sc.weather[m]*(w.weather/t)+sc.crowds[m]*(w.crowds/t)+sc.access[m]*(w.access/t)};
+const getColor = s => s>=4?"#059669":s>=3.2?"#16a34a":s>=2.5?"#a16207":s>=1.8?"#c2410c":"#dc2626";
+const getBg = s => s>=4?"#dcfce7":s>=3.2?"#f0fdf4":s>=2.5?"#fef9c3":s>=1.8?"#fff7ed":"#fef2f2";
+const getLabel = s => s>=4?"Excellent":s>=3.2?"Good":s>=2.5?"Fair":s>=1.8?"Poor":"Avoid";
+
+function App() {
+  const [view, setView] = useState("when");
+  const [weights, setWeights] = useState({price:30,weather:25,crowds:25,access:20});
+  const [preset, setPreset] = useState("balanced");
+  const [catFilter, setCatFilter] = useState(null);
+  const [month, setMonth] = useState(new Date().getMonth());
+  const [expanded, setExpanded] = useState(null);
+  const [showAbout, setShowAbout] = useState(false);
+
+  const applyPreset = k => {const p=PRESETS[k];setWeights({price:p.price,weather:p.weather,crowds:p.crowds,access:p.access});setPreset(k)};
+  const setW = (k,v) => {setWeights(p=>({...p,[k]:v}));setPreset(null)};
+
+  const filtered = useMemo(() =>
+    Object.entries(destinations).filter(([_,d]) => !catFilter || d.cat === catFilter),
+    [catFilter]
+  );
+
+  const ranked = useMemo(() =>
+    filtered.map(([k,d]) => ({key:k,dest:d,score:getComp(d.scores,month,weights)})).sort((a,b) => b.score-a.score),
+    [month,weights,filtered]
+  );
+
+  const bestByMonth = useMemo(() =>
+    MONTHS.map((_,i) => {
+      let best={name:"",score:0,emoji:"",key:""};
+      filtered.forEach(([k,d])=>{const s=getComp(d.scores,i,weights);if(s>best.score)best={name:d.name,score:s,emoji:d.emoji,key:k}});
+      return best;
+    }),
+    [weights,filtered]
+  );
+
+  return (
+    <div style={{maxWidth:900,margin:"0 auto",padding:"28px 20px 60px"}}>
+      {/* HEADER */}
+      <header className="fade-up" style={{marginBottom:24}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+          <div>
+            <div style={{fontFamily:"'DM Serif Display',serif",fontSize:32,fontWeight:400,color:"#1a1a1a",lineHeight:1.1}}>
+              Shoulder
+            </div>
+            <p style={{fontSize:14,color:"#6b7280",marginTop:6,maxWidth:520,lineHeight:1.5}}>
+              Find the sweet spot between peak and off-season for 23 US destinations.
+              Adjust the weights to match what matters to <em>you</em>.
+            </p>
+          </div>
+          <button onClick={()=>setShowAbout(!showAbout)} style={{
+            padding:"6px 14px",borderRadius:20,fontSize:11,fontWeight:600,cursor:"pointer",
+            border:"1px solid #d1d5db",background:showAbout?"#1a1a1a":"white",color:showAbout?"white":"#6b7280",
+            whiteSpace:"nowrap"
+          }}>
+            {showAbout ? "Close ✕" : "What is this?"}
+          </button>
+        </div>
+
+        {showAbout && (
+          <div className="fade-up" style={{marginTop:16,background:"#fefce8",border:"1px solid #fde68a",borderRadius:10,padding:20}}>
+            <div style={{fontSize:14,fontWeight:700,color:"#854d0e",marginBottom:8}}>
+              You're looking at a prototype.
+            </div>
+            <div style={{fontSize:13,color:"#92400e",lineHeight:1.7}}>
+              <strong>Shoulder</strong> is a data model that identifies the best time to visit a destination by combining four variables: price, weather, crowds, and service availability. Most travel advice gives you one person's opinion. This gives you a composite score you can adjust based on your own priorities.
+              <br/><br/>
+              <strong>What we're testing:</strong> Does this scoring approach feel useful? Would you trust it to plan a trip? What's missing? What would make you come back?
+              <br/><br/>
+              <strong>What it is now:</strong> 23 US destinations scored manually from 2024-2025 tourism data. Next step is real-time data from weather, flight, and park visitation APIs.
+              <br/><br/>
+              <span style={{fontSize:12,color:"#a16207"}}>Built by Monte Cristo Studio — <a href="mailto:feedback@example.com" style={{color:"#854d0e"}}>send feedback</a></span>
+            </div>
+          </div>
+        )}
+      </header>
+
+      {/* WEIGHTS PANEL */}
+      <div className="fade-up fade-d1" style={{background:"white",border:"1px solid #e5e7eb",borderRadius:12,padding:"14px 18px",marginBottom:16,boxShadow:"0 1px 2px rgba(0,0,0,.04)"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+          <span style={{fontSize:13,fontWeight:700,color:"#374151"}}>What matters to you?</span>
+          <div style={{display:"flex",gap:4}}>
+            {Object.entries(PRESETS).map(([k,p])=>(
+              <button key={k} onClick={()=>applyPreset(k)} title={p.desc} style={{
+                padding:"4px 10px",borderRadius:14,fontSize:10,fontWeight:600,cursor:"pointer",
+                border:preset===k?"1.5px solid #1a1a1a":"1px solid #e5e7eb",
+                background:preset===k?"#1a1a1a":"#faf9f6",color:preset===k?"white":"#9ca3af",
+                transition:"all .15s"
+              }}>{p.label}</button>
+            ))}
+          </div>
+        </div>
+        {[
+          {k:"price",l:"Price",i:"💰",c:"#059669"},
+          {k:"weather",l:"Weather",i:"☀️",c:"#0284c7"},
+          {k:"crowds",l:"Crowds",i:"👥",c:"#7c3aed"},
+          {k:"access",l:"Access",i:"🔓",c:"#c2410c"},
+        ].map(s=>(
+          <div key={s.k} style={{display:"flex",alignItems:"center",gap:8,padding:"3px 0"}}>
+            <span style={{fontSize:13,width:24,textAlign:"center"}}>{s.i}</span>
+            <span style={{width:56,fontSize:11,fontWeight:600,color:"#4b5563"}}>{s.l}</span>
+            <input type="range" min={5} max={60} value={weights[s.k]} onChange={e=>setW(s.k,+e.target.value)}
+              style={{flex:1,accentColor:s.c}} />
+            <span style={{width:32,textAlign:"center",fontSize:12,fontWeight:700,color:s.c}}>{weights[s.k]}%</span>
+          </div>
+        ))}
+      </div>
+
+      {/* CATEGORY FILTER + VIEW TABS */}
+      <div className="fade-up fade-d2" style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14,flexWrap:"wrap",gap:8}}>
+        <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
+          <button onClick={()=>setCatFilter(null)} style={{
+            padding:"5px 12px",borderRadius:14,fontSize:11,fontWeight:600,cursor:"pointer",
+            border:!catFilter?"1.5px solid #1a1a1a":"1px solid #e5e7eb",
+            background:!catFilter?"#1a1a1a":"white",color:!catFilter?"white":"#9ca3af"
+          }}>All 23</button>
+          {Object.entries(CATEGORIES).map(([k,c])=>{
+            const n=Object.values(destinations).filter(d=>d.cat===k).length;
+            return(
+              <button key={k} onClick={()=>setCatFilter(catFilter===k?null:k)} style={{
+                padding:"5px 12px",borderRadius:14,fontSize:11,fontWeight:600,cursor:"pointer",
+                border:catFilter===k?`1.5px solid ${c.color}`:"1px solid #e5e7eb",
+                background:catFilter===k?c.color:"white",color:catFilter===k?"white":"#9ca3af"
+              }}>{c.icon} {c.label} ({n})</button>
+            )
+          })}
+        </div>
+        <div style={{display:"flex",gap:2,background:"#f3f4f6",borderRadius:8,padding:2}}>
+          {[{k:"when",l:"By Month"},{k:"detail",l:"By Place"},{k:"compare",l:"Compare"}].map(t=>(
+            <button key={t.k} onClick={()=>setView(t.k)} style={{
+              padding:"6px 14px",borderRadius:6,fontSize:12,fontWeight:600,cursor:"pointer",border:"none",
+              background:view===t.k?"white":"transparent",color:view===t.k?"#1a1a1a":"#9ca3af",
+              boxShadow:view===t.k?"0 1px 2px rgba(0,0,0,.06)":"none",transition:"all .15s"
+            }}>{t.l}</button>
+          ))}
+        </div>
+      </div>
+
+      {/* BY MONTH VIEW */}
+      {view === "when" && (
+        <div>
+          {/* Month selector */}
+          <div className="fade-up fade-d3" style={{display:"flex",gap:4,marginBottom:16,flexWrap:"wrap"}}>
+            {MONTHS.map((m,i)=>(
+              <button key={m} onClick={()=>setMonth(i)} style={{
+                padding:"8px 0",flex:1,minWidth:56,borderRadius:8,fontSize:12,fontWeight:i===month?700:500,cursor:"pointer",
+                border:i===month?"2px solid #1a1a1a":"1px solid #e5e7eb",
+                background:i===month?"#1a1a1a":"white",color:i===month?"white":"#6b7280",
+                transition:"all .15s"
+              }}>{m}</button>
+            ))}
+          </div>
+
+          {/* Best of month banner */}
+          {ranked.length > 0 && (
+            <div className="fade-up fade-d4" style={{
+              background:`linear-gradient(135deg, ${getColor(ranked[0].score)}08, ${getColor(ranked[0].score)}15)`,
+              border:`1.5px solid ${getColor(ranked[0].score)}30`,
+              borderRadius:12,padding:"16px 20px",marginBottom:14,
+              display:"flex",alignItems:"center",gap:16
+            }}>
+              <span style={{fontSize:36}}>{ranked[0].dest.emoji}</span>
+              <div style={{flex:1}}>
+                <div style={{fontSize:11,color:"#6b7280",fontWeight:600,textTransform:"uppercase",letterSpacing:1}}>
+                  Best in {MONTH_FULL[month]}
+                </div>
+                <div style={{fontFamily:"'DM Serif Display',serif",fontSize:22,color:"#1a1a1a"}}>
+                  {ranked[0].dest.name}
+                </div>
+                <div style={{fontSize:12,color:"#6b7280",marginTop:2}}>{ranked[0].dest.tagline}</div>
+              </div>
+              <div style={{textAlign:"right"}}>
+                <div style={{fontSize:28,fontWeight:800,color:getColor(ranked[0].score)}}>{ranked[0].score.toFixed(1)}</div>
+                <div style={{fontSize:11,color:getColor(ranked[0].score),fontWeight:600}}>{getLabel(ranked[0].score)}</div>
+              </div>
+            </div>
+          )}
+
+          {/* Ranked list */}
+          <div style={{display:"flex",flexDirection:"column",gap:6}}>
+            {ranked.map((item,idx)=>(
+              <div key={item.key} className={`slide-in`} style={{animationDelay:`${idx*0.03}s`,
+                display:"flex",alignItems:"center",gap:12,
+                background:"white",border:"1px solid #e5e7eb",borderRadius:10,padding:"10px 14px",
+                cursor:"pointer",transition:"all .15s",
+                ...(expanded===item.key ? {borderColor:getColor(item.score),boxShadow:`0 0 0 1px ${getColor(item.score)}20`} : {})
+              }} onClick={()=>setExpanded(expanded===item.key?null:item.key)}>
+                <div style={{
+                  width:24,height:24,borderRadius:"50%",flexShrink:0,
+                  background:idx===0?"#1a1a1a":idx<3?"#6b7280":"#d1d5db",
+                  color:"white",display:"flex",alignItems:"center",justifyContent:"center",
+                  fontSize:11,fontWeight:800
+                }}>{idx+1}</div>
+                <span style={{fontSize:20,flexShrink:0}}>{item.dest.emoji}</span>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{display:"flex",alignItems:"center",gap:6}}>
+                    <span style={{fontSize:14,fontWeight:700,color:"#1a1a1a"}}>{item.dest.name}</span>
+                    <span style={{fontSize:10,color:CATEGORIES[item.dest.cat].color,fontWeight:600,background:CATEGORIES[item.dest.cat].color+"12",padding:"1px 6px",borderRadius:8}}>{item.dest.region}</span>
+                  </div>
+                  <div style={{fontSize:11,color:"#9ca3af",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{item.dest.tagline}</div>
+                </div>
+                {/* Mini score bars */}
+                <div style={{display:"flex",gap:3,flexShrink:0}}>
+                  {[{k:"price",c:"#059669"},{k:"weather",c:"#0284c7"},{k:"crowds",c:"#7c3aed"},{k:"access",c:"#c2410c"}].map(s=>(
+                    <div key={s.k} style={{width:4,height:24,borderRadius:2,background:"#f3f4f6",position:"relative",overflow:"hidden"}}>
+                      <div style={{position:"absolute",bottom:0,width:"100%",height:`${item.dest.scores[s.k][month]*20}%`,background:s.c,borderRadius:2,transition:"height .3s"}}/>
+                    </div>
+                  ))}
+                </div>
+                <div style={{textAlign:"right",flexShrink:0,width:50}}>
+                  <div style={{fontSize:20,fontWeight:800,color:getColor(item.score)}}>{item.score.toFixed(1)}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+          {expanded && ranked.find(r=>r.key===expanded) && (()=>{
+            const item = ranked.find(r=>r.key===expanded);
+            return (
+              <div className="fade-up" style={{marginTop:8,background:"white",border:`1.5px solid ${getColor(item.score)}30`,borderRadius:12,padding:18}}>
+                <div style={{background:"#f0fdf4",border:"1px solid #bbf7d0",borderRadius:8,padding:14,marginBottom:10}}>
+                  <div style={{fontSize:13,fontWeight:700,color:"#166534",marginBottom:4}}>✦ Best Window: {item.dest.best}</div>
+                  <div style={{fontSize:12,color:"#15803d",lineHeight:1.6}}>{item.dest.why}</div>
+                </div>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+                  <div style={{background:"#fefce8",border:"1px solid #fde68a",borderRadius:8,padding:12}}>
+                    <div style={{fontSize:10,fontWeight:700,color:"#854d0e",marginBottom:3}}>⚠ The Tradeoff</div>
+                    <div style={{fontSize:12,color:"#92400e",lineHeight:1.5}}>{item.dest.tradeoff}</div>
+                  </div>
+                  <div style={{background:"#eff6ff",border:"1px solid #bfdbfe",borderRadius:8,padding:12}}>
+                    <div style={{fontSize:10,fontWeight:700,color:"#1e40af",marginBottom:3}}>💡 Pro Tip</div>
+                    <div style={{fontSize:12,color:"#1e3a5f",lineHeight:1.5}}>{item.dest.tip}</div>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+        </div>
+      )}
+
+      {/* BY PLACE VIEW */}
+      {view === "detail" && (
+        <div>
+          {Object.entries(CATEGORIES).filter(([k])=>!catFilter||k===catFilter).map(([catKey,cat])=>{
+            const dests = filtered.filter(([_,d])=>d.cat===catKey);
+            if(dests.length===0) return null;
+            return (
+              <div key={catKey} style={{marginBottom:20}}>
+                <div className="fade-up" style={{fontSize:13,fontWeight:700,color:cat.color,marginBottom:8,display:"flex",alignItems:"center",gap:6}}>
+                  <span>{cat.icon}</span>{cat.label}
+                </div>
+                {dests.map(([key,dest],idx)=>{
+                  const composites = MONTHS.map((_,i)=>getComp(dest.scores,i,weights));
+                  const bestScore = Math.max(...composites);
+                  const bestIdx = composites.indexOf(bestScore);
+                  const isOpen = expanded === key;
+                  return (
+                    <div key={key} className="fade-up" style={{animationDelay:`${idx*0.05}s`,
+                      background:"white",border:"1px solid #e5e7eb",borderRadius:10,padding:14,marginBottom:8,
+                      ...(isOpen?{borderColor:cat.color+"60"}:{})
+                    }}>
+                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10,cursor:"pointer"}} onClick={()=>setExpanded(isOpen?null:key)}>
+                        <div style={{display:"flex",alignItems:"center",gap:8}}>
+                          <span style={{fontSize:20}}>{dest.emoji}</span>
+                          <div>
+                            <div style={{fontSize:15,fontWeight:700,color:"#1a1a1a"}}>{dest.name} <span style={{fontSize:11,fontWeight:400,color:"#9ca3af"}}>{dest.region}</span></div>
+                            <div style={{fontSize:11,color:"#9ca3af",fontStyle:"italic"}}>{dest.tagline}</div>
+                          </div>
+                        </div>
+                        <div style={{textAlign:"right",fontSize:10,color:"#9ca3af"}}>
+                          <div>Best: <strong style={{color:getColor(bestScore)}}>{MONTHS[bestIdx]} ({bestScore.toFixed(1)})</strong></div>
+                          <span style={{cursor:"pointer",color:cat.color,fontWeight:600}}>{isOpen?"▴ Less":"▾ More"}</span>
+                        </div>
+                      </div>
+                      {/* Month grid */}
+                      <div style={{display:"grid",gridTemplateColumns:"repeat(12,1fr)",gap:3}}>
+                        {MONTHS.map((m,i)=>{
+                          const s=composites[i];const isBest=i===bestIdx;
+                          return(
+                            <div key={m} style={{textAlign:"center",padding:"7px 1px 5px",borderRadius:6,
+                              background:isBest?getColor(s):getBg(s),border:isBest?"none":"1px solid #f3f4f6"}}>
+                              <div style={{fontSize:8,color:isBest?"rgba(255,255,255,.7)":"#9ca3af"}}>{m}</div>
+                              <div style={{fontSize:14,fontWeight:800,color:isBest?"white":getColor(s)}}>{s.toFixed(1)}</div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                      {isOpen && (
+                        <div className="fade-up" style={{marginTop:12}}>
+                          <div style={{background:"#f0fdf4",border:"1px solid #bbf7d0",borderRadius:8,padding:12,marginBottom:8}}>
+                            <div style={{fontSize:12,fontWeight:700,color:"#166534",marginBottom:3}}>✦ Best Window: {dest.best}</div>
+                            <div style={{fontSize:12,color:"#15803d",lineHeight:1.5}}>{dest.why}</div>
+                          </div>
+                          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+                            <div style={{background:"#fefce8",border:"1px solid #fde68a",borderRadius:8,padding:10}}>
+                              <div style={{fontSize:10,fontWeight:700,color:"#854d0e",marginBottom:2}}>⚠ Tradeoff</div>
+                              <div style={{fontSize:11,color:"#92400e",lineHeight:1.4}}>{dest.tradeoff}</div>
+                            </div>
+                            <div style={{background:"#eff6ff",border:"1px solid #bfdbfe",borderRadius:8,padding:10}}>
+                              <div style={{fontSize:10,fontWeight:700,color:"#1e40af",marginBottom:2}}>💡 Pro Tip</div>
+                              <div style={{fontSize:11,color:"#1e3a5f",lineHeight:1.4}}>{dest.tip}</div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* COMPARE VIEW */}
+      {view === "compare" && (
+        <div className="fade-up fade-d3">
+          {/* Best by month row */}
+          <div style={{display:"grid",gridTemplateColumns:"repeat(6,1fr)",gap:6,marginBottom:20}}>
+            {MONTHS.map((m,i)=>(
+              <div key={m} style={{background:getBg(bestByMonth[i].score),borderRadius:8,padding:"8px 6px",
+                border:bestByMonth[i].score>=3.5?`1.5px solid ${getColor(bestByMonth[i].score)}40`:"1px solid #e5e7eb",
+                textAlign:"center"}}>
+                <div style={{fontSize:9,color:"#9ca3af"}}>{MONTH_FULL[i]}</div>
+                <div style={{fontSize:18,margin:"2px 0"}}>{bestByMonth[i].emoji}</div>
+                <div style={{fontSize:10,fontWeight:700,color:"#1a1a1a",lineHeight:1.1}}>{bestByMonth[i].name}</div>
+                <div style={{fontSize:13,fontWeight:800,color:getColor(bestByMonth[i].score),marginTop:1}}>{bestByMonth[i].score.toFixed(1)}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Heat map table */}
+          <div style={{overflowX:"auto",borderRadius:10,border:"1px solid #e5e7eb"}}>
+            <table style={{width:"100%",borderCollapse:"collapse",fontSize:12,background:"white"}}>
+              <thead>
+                <tr style={{background:"#faf9f6"}}>
+                  <th style={{textAlign:"left",padding:"10px 12px",borderBottom:"1px solid #e5e7eb",color:"#374151",fontSize:11,position:"sticky",left:0,background:"#faf9f6",zIndex:1}}>Destination</th>
+                  {MONTHS.map(m=><th key={m} style={{padding:"10px 3px",borderBottom:"1px solid #e5e7eb",color:"#9ca3af",fontSize:10,textAlign:"center"}}>{m}</th>)}
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map(([key,dest],rowIdx)=>{
+                  const scores = MONTHS.map((_,i)=>getComp(dest.scores,i,weights));
+                  const maxS = Math.max(...scores);
+                  return(
+                    <tr key={key} style={{background:rowIdx%2===0?"white":"#faf9f6"}}>
+                      <td style={{padding:"7px 12px",borderBottom:"1px solid #f3f4f6",whiteSpace:"nowrap",position:"sticky",left:0,background:rowIdx%2===0?"white":"#faf9f6",zIndex:1}}>
+                        <span style={{marginRight:4}}>{dest.emoji}</span>
+                        <span style={{fontWeight:600,color:"#1a1a1a",fontSize:11}}>{dest.name}</span>
+                      </td>
+                      {scores.map((s,i)=>(
+                        <td key={i} style={{padding:"3px 2px",borderBottom:"1px solid #f3f4f6",textAlign:"center"}}>
+                          <div style={{
+                            background:s===maxS?getColor(s):getBg(s),
+                            color:s===maxS?"white":getColor(s),
+                            fontWeight:700,fontSize:11,borderRadius:3,padding:"4px 1px"
+                          }}>{s.toFixed(1)}</div>
+                        </td>
+                      ))}
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* FOOTER */}
+      <footer className="fade-up" style={{marginTop:32,textAlign:"center"}}>
+        <div style={{fontSize:11,color:"#9ca3af",lineHeight:1.6}}>
+          <strong>Shoulder v0.3</strong> — 23 destinations scored from 2024-2025 tourism data
+          <br/>Next: real-time weather, flight pricing, and NPS visitor APIs
+          <br/><span style={{color:"#c2410c"}}>Monte Cristo Studio</span> — Building tools for smarter travel
+        </div>
+      </footer>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>
